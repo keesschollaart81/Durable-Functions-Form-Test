@@ -1,0 +1,79 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+</head>
+<body>
+    <form method="post" enctype="multipart/form-data">
+        <b>Name</b><br />
+        <input type="text" name="name" /><br /><br />
+
+        <b>File</b><br />
+        <input type="file" name="file" /><br /><br />
+
+        <button type="submit">Go</button>
+    </form>
+    <pre>
+
+</pre>
+    <script type="text/javascript">
+        var form = document.forms[0];
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var formElement = document.querySelector("form");
+            var formData = new FormData(formElement);
+            var request = new XMLHttpRequest();
+            request.open("POST", "./HttpTrigger");
+            request.onload = function (event) { processFormPostRequest(request); };
+            request.send(formData);
+
+            return false;
+        });
+
+        var procesStatusResponseTimeout;
+
+        function processFormPostRequest(request) {
+            if (request.status == 202) {
+                updateStatus("Form posted");
+                var formPostResponse = JSON.parse(request.responseText);
+
+                clearTimeout(procesStatusResponseTimeout);
+                procesStatusResponseTimeout = setTimeout(function () { procesStatusResponse(formPostResponse); }, 100);
+            } else {
+                clearTimeout(procesStatusResponseTimeout);
+                updateStatus("Error " + request.status + " occurred when trying to post the form.");
+            }
+        }
+
+        function procesStatusResponse(formPostResponse) {
+            var statusRequest = new XMLHttpRequest();
+            statusRequest.open("GET", formPostResponse.statusQueryGetUri);
+            statusRequest.onload = function () {
+                if (statusRequest.status == 202 || statusRequest.status == 200) {
+                    var statusResponse = JSON.parse(statusRequest.responseText);
+                    updateStatus(`${statusResponse.runtimeStatus} - ${statusResponse.customStatus}`);
+
+                    if (statusResponse.runtimeStatus == "Failed" || statusResponse.runtimeStatus == "Completed") {
+                        clearTimeout(procesStatusResponseTimeout);
+                    }
+                    else {
+                        procesStatusResponseTimeout = setTimeout(function () { procesStatusResponse(formPostResponse); }, 100);
+                    }
+                } else {
+                    clearTimeout(procesStatusResponseTimeout);
+                    updateStatus("Error " + statusRequest.status + " occurred when trying to get the form post status.");
+                }
+            }
+            statusRequest.send();
+        }
+
+        function updateStatus(txt) {
+            var pre = document.querySelector("pre");
+            pre.innerText = txt + "\r\n" + pre.innerText;
+        }
+    </script>
+</body>
+</html>
