@@ -20,6 +20,7 @@
 </pre>
     <script type="text/javascript">
         var form = document.forms[0];
+        var startTime;
 
         form.addEventListener('submit', function (e) {
             e.preventDefault();
@@ -28,6 +29,7 @@
             var request = new XMLHttpRequest();
             request.open("POST", "./HttpTrigger");
             request.onload = function (event) { processFormPostRequest(request); };
+            startTime = new Date();
             request.send(formData);
 
             return false;
@@ -72,7 +74,8 @@
 
         function updateStatus(txt) {
             var pre = document.querySelector("pre");
-            pre.innerText = txt + "\r\n" + pre.innerText;
+            var timeDiff = new Date() - startTime; //in ms
+            pre.innerText = timeDiff + " " + txt + "\r\n" + pre.innerText;
         }
     </script>
 </body>
